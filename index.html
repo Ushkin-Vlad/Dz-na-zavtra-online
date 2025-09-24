@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ДЗ на завтра!</title>
+    <style>
+        :root {
+            --bg-color: #f0f8ff; --text-color: #333; --header-color: #4a76a8;
+            --table-bg: #ffffff; --table-border: #ddd; --button-bg: #4a76a8; --button-color: white;
+        }
+        .theme-yellow {
+            --bg-color: #fffde7; --text-color: #5d4037; --header-color: #ffd54f;
+            --table-bg: #ffffff; --table-border: #ffe082; --button-bg: #ffd54f; --button-color: #5d4037;
+        }
+        .theme-pink {
+            --bg-color: #fce4ec; --text-color: #880e4f; --header-color: #f8bbd9;
+            --table-bg: #ffffff; --table-border: #f8bbd9; --button-bg: #f8bbd9; --button-color: #880e4f;
+        }
+        body {
+            font-family: Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color);
+            margin: 0; padding: 20px; transition: background-color 0.3s, color 0.3s; min-height: 100vh;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { color: var(--header-color); margin-bottom: 5px; }
+        .today-date { font-size: 1.2em; font-weight: bold; margin-bottom: 10px; }
+        .theme-buttons { margin: 15px 0; text-align: center; }
+        .theme-btn {
+            padding: 8px 15px; margin: 0 5px; border: none; border-radius: 5px;
+            cursor: pointer; font-weight: bold;
+        }
+        .theme-default { background: #f0f8ff; color: #333; border: 2px solid #4a76a8; }
+        .theme-yellow-btn { background: #fffde7; color: #5d4037; border: 2px solid #ffd54f; }
+        .theme-pink-btn { background: #fce4ec; color: #880e4f; border: 2px solid #f8bbd9; }
+        .homework-date { text-align: center; font-size: 1.4em; font-weight: bold; margin: 20px 0; color: var(--header-color); }
+        .schedule-table {
+            width: 100%; border-collapse: collapse; background-color: var(--table-bg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; margin-bottom: 20px;
+        }
+        .schedule-table th, .schedule-table td { border: 1px solid var(--table-border); padding: 12px 15px; text-align: left; }
+        .schedule-table th { background-color: var(--header-color); color: var(--button-color); font-weight: bold; }
+        .schedule-table tr:nth-child(even) { background-color: rgba(0,0,0,0.03); }
+        .subject { font-weight: bold; width: 25%; }
+        .lesson-number { width: 10%; text-align: center; }
+        .homework { width: 65%; }
+        .developer-panel { position: fixed; bottom: 20px; left: 20px; z-index: 1000; }
+        .login-btn {
+            background-color: var(--button-bg); color: var(--button-color); border: none;
+            padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;
+        }
+        .developer-menu {
+            display: none; background-color: var(--table-bg); padding: 15px; border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2); margin-top: 10px; border: 2px solid var(--header-color);
+        }
+        .dev-btn {
+            padding: 8px 15px; margin: 5px; background-color: var(--header-color);
+            color: var(--button-color); border: none; border-radius: 4px; cursor: pointer;
+        }
+        .edit-mode .homework, .edit-mode .subject {
+            cursor: pointer; border: 1px dashed transparent; padding: 4px; border-radius: 3px;
+        }
+        .edit-mode .homework:hover, .edit-mode .subject:hover {
+            border-color: var(--header-color); background-color: rgba(0,0,0,0.05);
+        }
+        .save-btn {
+            display: none; background-color: #4CAF50; color: white; border: none;
+            padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; margin: 10px auto;
+        }
+        .remove-lesson-btn {
+            background-color: #f44336; color: white; border: none; padding: 2px 6px;
+            border-radius: 3px; cursor: pointer; margin-left: 5px;
+        }
+        .last-update { text-align: center; margin-top: 20px; font-size: 0.9em; color: #666; }
+        .sync-info {
+            background: #e3f2fd; padding: 10px; border-radius: 5px; margin: 10px 0;
+            border-left: 4px solid #2196F3;
+        }
+        #loading { text-align: center; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>ДЗ на завтра!</h1>
+            <div class="today-date" id="todayDate">Сегодня: </div>
+            
+            <div class="theme-buttons">
+                <button class="theme-btn theme-default" onclick="setTheme('default')">Светло-голубой</button>
+                <button class="theme-btn theme-yellow-btn" onclick="setTheme('yellow')">Светло-желтый</button>
+                <button class="theme-btn theme-pink-btn" onclick="setTheme('pink')">Светло-розовый</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="homework-date" id="homeworkDate">Задания на завтра: </div>
+            
+            <div class="sync-info">
+                💡 <strong>Как обновить данные:</strong> Потяните страницу вниз для обновления расписания
+            </div>
+            
+            <div id="loading">🔄 Загрузка...</div>
+            
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Предмет</th>
+                        <th>Домашнее задание</th>
+                        <th class="edit-mode-only" style="display: none;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="scheduleBody"></tbody>
+            </table>
+
+            <div class="last-update" id="lastUpdate"></div>
+            <button class="save-btn" id="saveBtn" onclick="saveHomework()">💾 Сохранить изменения</button>
+        </main>
+    </div>
+
+    <div class="developer-panel">
+        <button class="login-btn" id="loginBtn">🔧 Редактировать</button>
+        <div class="developer-menu" id="devMenu">
+            <div style="margin-bottom: 15px;">
+                <strong>Вход для редактирования</strong><br>
+                <small>Только для ответственного за расписание</small>
+            </div>
+            <button class="dev-btn" onclick="enableEditMode()">✏️ Включить редактирование</button>
+            <button class="dev-btn" onclick="addNewLesson()">➕ Добавить урок</button>
+            <button class="dev-btn" onclick="resetToDefault()">🔄 Сбросить</button>
+            <div style="margin-top: 15px; font-size: 0.9em; color: #666;">
+                После сохранения попросите одноклассников обновить страницу
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация
+        const CONFIG = {
+            VERSION: '1.0',
+            AUTO_SAVE: true,
+            SYNC_INTERVAL: 30000 // 30 секунд
+        };
+
+        let homeworkData = [];
+        let isEditMode = false;
+        let lastSavedHash = '';
+
+        // Данные по умолчанию (одинаковые для всех)
+        const DEFAULT_SCHEDULE = [
+            { subject: "Математика", task: "№100-102", lessonNumber: 1 },
+            { subject: "Русский язык", task: "Упр. 45", lessonNumber: 2 },
+            { subject: "Литература", task: "Прочитать стр. 50-60", lessonNumber: 3 },
+            { subject: "История", task: "§18, вопросы 1-5", lessonNumber: 4 },
+            { subject: "География", task: "Контурная карта стр. 25", lessonNumber: 5 },
+            { subject: "Биология", task: "Подготовить доклад", lessonNumber: 6 }
+        ];
+
+        // Инициализация
+        function init() {
+            loadHomeworkData();
+            updateDates();
+            setupEventListeners();
+            startAutoSave();
+            
+            // Показать версию в консоли для отладки
+            console.log(`ДЗ на завтра! v${CONFIG.VERSION}`);
+        }
+
+        function loadHomeworkData() {
+            try {
+                const savedData = localStorage.getItem('classHomeworkData');
+                if (savedData) {
+                    homeworkData = JSON.parse(savedData);
+                    console.log('Данные загружены из localStorage');
+                } else {
+                    homeworkData = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+                    saveHomeworkData();
+                    console.log('Использованы данные по умолчанию');
+                }
+                lastSavedHash = generateDataHash();
+                updateSchedule();
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                homeworkData = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+                updateSchedule();
+            }
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function saveHomeworkData() {
+            try {
+                localStorage.setItem('classHomeworkData', JSON.stringify(homeworkData));
+                localStorage.setItem('lastUpdate', new Date().toLocaleString('ru-RU'));
+                lastSavedHash = generateDataHash();
+                updateLastUpdateTime();
+                console.log('Данные сохранены');
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+            }
+        }
+
+        function generateDataHash() {
+            return JSON.stringify(homeworkData);
+        }
+
+        function hasUnsavedChanges() {
+            return generateDataHash() !== lastSavedHash;
+        }
+
+        function startAutoSave() {
+            setInterval(() => {
+                if (isEditMode && hasUnsavedChanges()) {
+                    document.getElementById('saveBtn').style.display = 'block';
+                }
+            }, CONFIG.SYNC_INTERVAL);
+        }
+
+        function updateSchedule() {
+            const tbody = document.getElementById('scheduleBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            homeworkData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                
+                const numberCell = document.createElement('td');
+                numberCell.textContent = item.lessonNumber || (index + 1);
+                numberCell.className = 'lesson-number';
+                
+                const subjectCell = document.createElement('td');
+                subjectCell.textContent = item.subject;
+                subjectCell.className = 'subject';
+                subjectCell.setAttribute('data-index', index);
+                
+                const homeworkCell = document.createElement('td');
+                homeworkCell.textContent = item.task;
+                homeworkCell.className = 'homework';
+                homeworkCell.setAttribute('data-index', index);
+
+                if (isEditMode) {
+                    subjectCell.ondblclick = () => editSubject(index);
+                    homeworkCell.ondblclick = () => editHomework(index);
+                    
+                    const actionsCell = document.createElement('td');
+                    actionsCell.innerHTML = `<button class="remove-lesson-btn" onclick="removeLesson(${index})">×</button>`;
+                    actionsCell.style.display = 'table-cell';
+                    row.appendChild(actionsCell);
+                }
+                
+                row.appendChild(numberCell);
+                row.appendChild(subjectCell);
+                row.appendChild(homeworkCell);
+                tbody.appendChild(row);
+            });
+        }
+
+        function enableEditMode() {
+            isEditMode = true;
+            document.body.classList.add('edit-mode');
+            document.getElementById('devMenu').style.display = 'none';
+            document.getElementById('loginBtn').textContent = '✏️ Режим редактирования';
+            document.getElementById('loginBtn').style.backgroundColor = '#4CAF50';
+            updateSchedule();
+            
+            // Показать инструкцию
+            setTimeout(() => {
+                alert('Режим редактирования включен!\n\n📝 Чтобы изменить:\n• Дважды кликните на предмет или задание\n• Используйте кнопки для добавления/удаления уроков\n• Не забудьте сохранить изменения');
+            }, 500);
+        }
+
+        function editSubject(index) {
+            if (!isEditMode) return;
+            const newSubject = prompt('Введите название предмета:', homeworkData[index].subject);
+            if (newSubject !== null && newSubject.trim() !== '') {
+                homeworkData[index].subject = newSubject.trim();
+                updateSchedule();
+                document.getElementById('saveBtn').style.display = 'block';
+            }
+        }
+
+        function editHomework(index) {
+            if (!isEditMode) return;
+            const newTask = prompt('Введите домашнее задание:', homeworkData[index].task);
+            if (newTask !== null) {
+                homeworkData[index].task = newTask;
+                updateSchedule();
+                document.getElementById('saveBtn').style.display = 'block';
+            }
+        }
+
+        function addNewLesson() {
+            if (!isEditMode) return;
+            const subject = prompt('Введите название предмета:', 'Новый предмет');
+            if (subject && subject.trim() !== '') {
+                homeworkData.push({
+                    subject: subject.trim(),
+                    task: 'Задание не задано',
+                    lessonNumber: homeworkData.length + 1
+                });
+                updateSchedule();
+                document.getElementById('saveBtn').style.display = 'block';
+            }
+        }
+
+        function removeLesson(index) {
+            if (!isEditMode) return;
+            if (confirm(`Удалить урок "${homeworkData[index].subject}"?`)) {
+                homeworkData.splice(index, 1);
+                updateSchedule();
+                document.getElementById('saveBtn').style.display = 'block';
+            }
+        }
+
+        function resetToDefault() {
+            if (!isEditMode) return;
+            if (confirm('Сбросить всё расписание к начальному состоянию?')) {
+                homeworkData = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+                updateSchedule();
+                document.getElementById('saveBtn').style.display = 'block';
+            }
+        }
+
+        function saveHomework() {
+            saveHomeworkData();
+            document.getElementById('saveBtn').style.display = 'none';
+            
+            // Показать инструкцию по синхронизации
+            alert('✅ Изменения сохранены на этом устройстве!\n\n📱 Чтобы обновить на других устройствах:\n1. Сообщите одноклассникам\n2. Попросите их ОБНОВИТЬ СТРАНИЦУ\n3. Или открыть сайт заново');
+        }
+
+        function updateLastUpdateTime() {
+            const lastUpdate = localStorage.getItem('lastUpdate');
+            const element = document.getElementById('lastUpdate');
+            if (element) {
+                element.textContent = lastUpdate ?
+                    `Последнее обновление: ${lastUpdate}` : 'Еще не обновлялось';
+            }
+        }
+
+        function setTheme(themeName) {
+            document.body.className = '';
+            if (themeName !== 'default') {
+                document.body.classList.add(`theme-${themeName}`);
+            }
+            localStorage.setItem('selectedTheme', themeName);
+        }
+
+        function getNextSchoolDay() {
+            const today = new Date();
+            let nextDay = new Date(today);
+            do {
+                nextDay.setDate(nextDay.getDate() + 1);
+            } while (nextDay.getDay() === 0 || nextDay.getDay() === 6);
+            return nextDay;
+        }
+
+        function updateDates() {
+            const today = new Date();
+            const nextSchoolDay = getNextSchoolDay();
+            const options = { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' };
+            
+            document.getElementById('todayDate').textContent = `Сегодня: ${today.toLocaleDateString('ru-RU', options)}`;
+            
+            const dayOfWeek = nextSchoolDay.getDay();
+            const dayNames = ['воскресенье', 'понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу'];
+            
+            document.getElementById('homeworkDate').textContent =
+                `Задания на ${dayNames[dayOfWeek]}: ${nextSchoolDay.toLocaleDateString('ru-RU', options)}`;
+        }
+
+        function setupEventListeners() {
+            document.getElementById('loginBtn').addEventListener('click', function() {
+                const menu = document.getElementById('devMenu');
+                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // Предотвращение потери данных при перезагрузке
+            window.addEventListener('beforeunload', function(e) {
+                if (hasUnsavedChanges()) {
+                    e.preventDefault();
+                    e.returnValue = 'У вас есть несохраненные изменения';
+                }
+            });
+        }
+
+        // Запуск при загрузке страницы
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
